@@ -2,6 +2,57 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
+pub enum RawActor {
+    User,
+    Assistant,
+    Tool,
+    System,
+    External,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum RawEventKind {
+    Message,
+    ToolCall,
+    ToolResult,
+    ShellCommand,
+    ShellResult,
+    FileChange,
+    Error,
+    Summary,
+    Artifact,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct RawEvent {
+    pub event_id: String,
+    pub session_id: String,
+    pub ordinal: usize,
+    pub actor: RawActor,
+    pub kind: RawEventKind,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timestamp: Option<DateTime<Utc>>,
+    pub source_uri: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_span: Option<String>,
+    pub raw_content: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tool_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tool_args_json: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub command: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cwd: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stdout: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stderr: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub exit_code: Option<i32>,
+    pub content_hash: String,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
 pub enum IntentKind {
     CommitChanges,
     PushBranch,
@@ -177,4 +228,22 @@ pub struct TaskRun {
     pub missing_evidence: Vec<String>,
     pub confidence: f32,
     pub evidence_tier: u8,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct RepoProbe {
+    pub repo_path: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub branch: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub head_commit: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub head_parent_count: Option<u8>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub head_subject: Option<String>,
+    #[serde(default)]
+    pub status_lines: Vec<String>,
+    #[serde(default)]
+    pub cached_status_lines: Vec<String>,
+    #[serde(default)]
+    pub recent_commits: Vec<String>,
 }
