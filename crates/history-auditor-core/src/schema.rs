@@ -229,6 +229,44 @@ pub struct TaskRun {
     pub confidence: f32,
     pub evidence_tier: u8,
 }
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum MemoryKind {
+    Episodic,
+    Procedural,
+    SemanticFact,
+    AntiPattern,
+    RepoFact,
+    UserPreference,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum MemoryStatus {
+    Proposed,
+    Approved,
+    Retracted,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct MemoryRecord {
+    pub memory_id: String,
+    pub session_id: String,
+    pub task_id: String,
+    pub kind: MemoryKind,
+    pub status: MemoryStatus,
+    pub text: String,
+    pub confidence: f32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub repo_path: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub branch: Option<String>,
+    pub evidence_event_ids: Vec<String>,
+    #[serde(default)]
+    pub supporting_task_ids: Vec<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status_reason: Option<String>,
+}
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct RepoProbe {
     pub repo_path: String,
@@ -246,4 +284,33 @@ pub struct RepoProbe {
     pub cached_status_lines: Vec<String>,
     #[serde(default)]
     pub recent_commits: Vec<String>,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct AuditRecord {
+    pub workspace_root: String,
+    pub workspace_id: String,
+    pub provider: String,
+    pub provider_display_name: String,
+    pub session_id: String,
+    pub session_name: String,
+    pub session_path: String,
+    pub audited_at: DateTime<Utc>,
+    pub raw_events: Vec<RawEvent>,
+    pub intents: Vec<IntentEvent>,
+    pub actions: Vec<ActionEvent>,
+    pub errors: Vec<ErrorEvent>,
+    pub task_run: TaskRun,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub repo_probe: Option<RepoProbe>,
+    #[serde(default)]
+    pub proposed_memories: Vec<MemoryRecord>,
+}
+#[derive(Clone, Debug, PartialEq)]
+pub struct StoredAuditSummary {
+    pub session_id: String,
+    pub audited_at: DateTime<Utc>,
+    pub branch: Option<String>,
+    pub primary_error_kind: Option<ErrorKind>,
+    pub incident_pattern: Option<String>,
+    pub task_run: TaskRun,
 }
