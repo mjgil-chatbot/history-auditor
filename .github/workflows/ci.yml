@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install native dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang mold pkg-config libssl-dev
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Verify repository contract
+        run: python3 scripts/verify_history_auditor_contract.py
+      - name: Run workspace tests
+        run: cargo test --workspace
+      - name: Run focused release regressions
+        run: ./scripts/verify-history-auditor-regressions.sh
+      - name: Build release workspace
+        run: cargo build --workspace --release

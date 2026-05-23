@@ -1,0 +1,22 @@
+# Git
+.git
+.gitignore
+
+# Target directory
+target
+
+# Cargo lock (will be regenerated in container)
+Cargo.lock
+
+# IDE files
+.vscode
+.idea
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker files
+Dockerfile
+.dockerignore
+docker-compose.yml

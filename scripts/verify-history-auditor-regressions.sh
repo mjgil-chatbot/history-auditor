@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+APP_ROOT="${APP_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
+TARGET_BASE="${XDG_CACHE_HOME:-$HOME/.cache}/history-auditor"
+TARGET_DIR="${CARGO_TARGET_DIR:-${TARGET_BASE}/target/history-auditor-regressions}"
+
+cd "$APP_ROOT"
+mkdir -p "$TARGET_DIR"
+export CARGO_TARGET_DIR="${TARGET_DIR}"
+unset RUSTC_WRAPPER
+
+echo "[verify-history-auditor-regressions] running focused history-auditor release regressions"
+echo "[verify-history-auditor-regressions] target-dir: ${CARGO_TARGET_DIR}"
+
+tests=(
+  audit_session_persists_report_and_detects_non_fast_forward
+  approve_memory_and_search_memory_corpus_round_trip
+  audit_history_and_explain_task_return_saved_results
+  audit_history_honors_branch_and_task_type_filters
+  persisted_audit_records_include_typed_events_and_edges
+  relevant_memories_honor_branch_filters
+  ingest_helpers_accept_markdown_jsonl_and_shell_logs
+  audit_artifact_accepts_inline_markdown_and_jsonl_artifacts
+  audit_artifact_reads_shell_log_from_path_and_supports_task_explanation
+  audit_artifact_accepts_provider_session_json
+  missing_requested_push_evidence_keeps_delivery_task_ambiguous
+  repeated_non_fast_forward_failures_promote_supported_procedural_memory
+  preference_and_claim_contradiction_memories_are_proposed
+  audit_history_honors_session_and_final_verdict_filters
+  find_similar_failures_honors_branch_session_and_failure_filters
+  repeated_auth_failures_promote_supported_procedural_memory
+  repeated_protected_branch_failures_promote_supported_procedural_memory
+  repeated_nothing_to_commit_promote_supported_procedural_memory
+  approving_stronger_memory_supersedes_weaker_related_memory
+  repeated_no_upstream_failures_promote_supported_procedural_memory
+  repeated_pre_receive_failures_need_multiple_supporting_tasks_for_repo_fact
+  repeated_dependency_failures_promote_supported_procedural_memory
+  find_similar_failures_infers_nothing_to_commit_incident_pattern
+  find_similar_failures_infers_dirty_worktree_incident_pattern
+  failed_action_without_normalized_error_uses_action_root_cause_and_blocks_task
+  contradictory_uncertainty_claim_keeps_success_shaped_task_ambiguous
+  exit_zero_push_without_remote_update_keeps_task_ambiguous
+  locally_confirmed_commit_uses_commit_exists_locally_verdict
+  unconfirmed_commit_output_keeps_commit_only_task_ambiguous
+  locally_confirmed_merge_uses_local_merge_completed_verdict
+  ambiguous_merge_activity_keeps_push_followup_task_ambiguous
+  rebase_conflict_uses_merge_conflict_verdict_and_blocks_task
+  ambiguous_rebase_activity_keeps_push_followup_task_ambiguous
+  successful_merge_and_push_can_still_complete
+)
+
+for test_name in "${tests[@]}"; do
+  cargo test --release -p history-auditor-core "$test_name" -- --nocapture
+done
