@@ -1,9 +1,11 @@
 use super::schema::{AuditRecord, ErrorKind, StoredAuditSummary};
 use super::store_support::task_type;
+
 pub(super) fn incident_pattern_for_audit(audit: &AuditRecord) -> Option<String> {
     let error_kind = audit.errors.first().map(|error| &error.kind)?;
     incident_pattern_label(task_type(audit), error_kind).map(str::to_string)
 }
+
 pub(super) fn incident_pattern_for_summary(summary: &StoredAuditSummary) -> Option<String> {
     summary.incident_pattern.clone().or_else(|| {
         summary
@@ -13,6 +15,7 @@ pub(super) fn incident_pattern_for_summary(summary: &StoredAuditSummary) -> Opti
             .map(str::to_string)
     })
 }
+
 pub(super) fn incident_pattern_label(
     task_type: &str,
     error_kind: &ErrorKind,
@@ -53,4 +56,98 @@ pub(super) fn incident_pattern_label(
         (_, ErrorKind::Unknown) => return None,
     };
     Some(pattern)
+}
+
+pub(super) fn classify_incident_pattern(
+    error_text: &str,
+    task_type: Option<&str>,
+) -> Option<&'static str> {
+    let normalized = error_text.to_ascii_lowercase();
+    let normalized_task_type = task_type.unwrap_or_default();
+    if normalized.contains("non-fast-forward") || normalized.contains("non fast forward") {
+        return Some("git_delivery_push_non_fast_forward");
+    }
+    if normalized.contains("protected branch") {
+        return Some("git_delivery_push_protected_branch");
+    }
+    if normalized.contains("pre-receive hook") {
+        return Some("git_delivery_push_pre_receive_hook_declined");
+    }
+    if normalized.contains("no upstream")
+        || normalized.contains("upstream branch")
+            && (normalized.contains("set upstream")
+                || normalized.contains("tracking")
+                || normalized.contains("push"))
+    {
+        return Some("git_delivery_push_no_upstream_branch");
+    }
+    if normalized.contains("merge conflict") {
+        return Some("git_delivery_merge_conflict");
+    }
+    if normalized.contains("rebase conflict") {
+        return Some("git_delivery_rebase_conflict");
+    }
+    if normalized.contains("detached head") || normalized.contains("detached-head") {
+        return Some("git_delivery_push_detached_head");
+    }
+    if normalized.contains("nothing to commit") {
+        return Some(match normalized_task_type {
+            "git_delivery" => "git_delivery_nothing_to_commit",
+            _ if normalized.contains("commit") || normalized.contains("push") => {
+                "git_delivery_nothing_to_commit"
+            }
+            _ => "nothing_to_commit",
+        });
+    }
+    if normalized.contains("remote not found") || normalized.contains("repository not found") {
+        return Some("git_delivery_push_remote_not_found");
+    }
+    if normalized.contains("dirty worktree")
+        || normalized.contains("working tree dirty")
+        || normalized.contains("working tree is dirty")
+    {
+        return Some(match normalized_task_type {
+            "git_delivery" => "git_delivery_dirty_worktree",
+            _ if normalized.contains("push")
+                || normalized.contains("commit")
+                || normalized.contains("delivery") =>
+            {
+                "git_delivery_dirty_worktree"
+            }
+            _ => "dirty_worktree",
+        });
+    }
+    if normalized.contains("auth failed") || normalized.contains("authentication failed") {
+        return Some("git_delivery_push_auth_failed");
+    }
+    if normalized.contains("permission denied") {
+        return Some(match normalized_task_type {
+            "git_delivery" => "git_delivery_permission_denied",
+            _ if normalized.contains("push")
+                || normalized.contains("commit")
+                || normalized.contains("delivery") =>
+            {
+                "git_delivery_permission_denied"
+            }
+            _ => "permission_denied",
+        });
+    }
+    if normalized.contains("dependency failure") {
+        return Some(match normalized_task_type {
+            "git_delivery" => "git_delivery_dependency_failure",
+            "test_run" => "test_run_dependency_failure",
+            _ => "dependency_failure",
+        });
+    }
+    if normalized.contains("test failure") || normalized.contains("tests failed") {
+        return Some(match normalized_task_type {
+            "git_delivery" => "git_delivery_test_failure",
+            "test_run" => "test_run_test_failure",
+            _ if normalized.contains("push") || normalized.contains("delivery") => {
+                "git_delivery_test_failure"
+            }
+            _ => "test_run_test_failure",
+        });
+    }
+    None
 }
