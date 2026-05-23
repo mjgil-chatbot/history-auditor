@@ -1,0 +1,49 @@
+[workspace]
+members = [
+    "crates/history-auditor-core",
+    "crates/history-auditor-mcp",
+]
+resolver = "2"
+
+[workspace.package]
+edition = "2021"
+version = "0.1.0"
+license = "0BSD"
+
+[workspace.dependencies]
+anyhow = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
+dirs = "6.0"
+pulldown-cmark = "0.13"
+rmcp = { version = "1.2.0", features = ["server", "transport-io", "macros", "schemars"] }
+rusqlite = { version = "0.39", features = ["bundled"] }
+schemars = "1.0"
+semhash-rs = { git = "https://github.com/mjgil-chatbot/semhash-rs.git", rev = "f324b91120028a4f5025c986c74416c9ed20e64f" }
+semble-rs = { git = "https://github.com/mjgil-chatbot/semble-rs.git", rev = "4beecd5bccea40d1bf28a767996d374eedea6d67" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0", features = ["preserve_order"] }
+tempfile = "3"
+tokio = { version = "1.0", features = ["full"] }
+uuid = { version = "1.0", features = ["v4", "serde"] }
+
+[profile.release]
+opt-level = 1
+lto = false
+codegen-units = 16
+incremental = true
+
+[profile.release.package."*"]
+opt-level = 3
+
+[profile.ship]
+inherits = "release"
+opt-level = 3
+lto = true
+codegen-units = 1
+incremental = false
+
+[profile.coverage]
+inherits = "dev"
+opt-level = 0
+debug = 1
+incremental = false
