@@ -7,6 +7,8 @@ pub mod ingest;
 pub mod memory;
 pub mod paths;
 pub mod repo;
+pub mod report;
 pub mod schema;
 pub mod session;
 mod store_support;
+mod util;
