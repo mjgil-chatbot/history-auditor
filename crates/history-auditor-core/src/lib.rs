@@ -5,6 +5,7 @@ mod extract_support;
 mod incident;
 pub mod ingest;
 pub mod memory;
+pub mod paths;
 pub mod schema;
 pub mod session;
 mod store_support;
