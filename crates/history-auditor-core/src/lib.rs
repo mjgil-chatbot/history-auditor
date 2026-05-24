@@ -9,7 +9,9 @@ pub mod paths;
 pub mod repo;
 pub mod report;
 pub mod schema;
+pub mod service;
 pub mod session;
+pub mod store;
 mod store_support;
 mod util;
 #[cfg(test)]
