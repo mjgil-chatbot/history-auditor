@@ -12,3 +12,5 @@ pub mod schema;
 pub mod session;
 mod store_support;
 mod util;
+#[cfg(test)]
+mod retrieval_tests;

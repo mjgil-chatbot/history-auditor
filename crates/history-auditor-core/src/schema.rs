@@ -1,5 +1,15 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq, schemars::JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum ArtifactKind {
+    MarkdownChat,
+    JsonlChat,
+    ShellLog,
+    ProviderSessionJson,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum RawActor {
@@ -9,6 +19,7 @@ pub enum RawActor {
     System,
     External,
 }
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum RawEventKind {
@@ -22,6 +33,7 @@ pub enum RawEventKind {
     Summary,
     Artifact,
 }
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct RawEvent {
     pub event_id: String,
@@ -51,6 +63,7 @@ pub struct RawEvent {
     pub exit_code: Option<i32>,
     pub content_hash: String,
 }
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum IntentKind {
@@ -62,6 +75,7 @@ pub enum IntentKind {
     EditFiles,
     Investigate,
 }
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct IntentEvent {
     pub intent_id: String,
@@ -69,6 +83,7 @@ pub struct IntentEvent {
     pub evidence_event_ids: Vec<String>,
     pub confidence: f32,
 }
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ActionStatus {
@@ -79,6 +94,7 @@ pub enum ActionStatus {
     Skipped,
     Unknown,
 }
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ActionKind {
@@ -95,6 +111,7 @@ pub enum ActionKind {
     EditFile,
     RunTests,
 }
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct ActionEvent {
     pub action_id: String,
@@ -113,6 +130,7 @@ pub struct ActionEvent {
     pub evidence_event_ids: Vec<String>,
     pub evidence_tier: u8,
 }
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ErrorKind {
@@ -132,6 +150,7 @@ pub enum ErrorKind {
     PermissionDenied,
     Unknown,
 }
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct ErrorEvent {
     pub error_id: String,
@@ -140,6 +159,7 @@ pub struct ErrorEvent {
     pub evidence_event_ids: Vec<String>,
     pub evidence_tier: u8,
 }
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum CommitVerdict {
@@ -147,6 +167,7 @@ pub enum CommitVerdict {
     CommitCreatedFromLog,
     CommitExistsLocally,
 }
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum PushVerdict {
@@ -155,6 +176,7 @@ pub enum PushVerdict {
     PushFailed,
     RemotePushUnknown,
 }
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum MergeVerdict {
@@ -163,6 +185,7 @@ pub enum MergeVerdict {
     MergeConflict,
     RemoteMergeUnknown,
 }
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum TaskVerdict {
@@ -171,6 +194,7 @@ pub enum TaskVerdict {
     TaskFailed,
     AmbiguousMissingEvidence,
 }
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ClaimKind {
@@ -184,6 +208,7 @@ pub enum ClaimKind {
     NeedsMoreInformation,
     Unknown,
 }
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct ClaimEvent {
     pub claim_id: String,
@@ -192,12 +217,14 @@ pub struct ClaimEvent {
     pub evidence_event_ids: Vec<String>,
     pub confidence: f32,
 }
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct StructuredNote {
     pub summary: String,
     pub evidence_event_ids: Vec<String>,
     pub confidence: f32,
 }
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct TaskRun {
     pub task_id: String,
@@ -229,6 +256,7 @@ pub struct TaskRun {
     pub confidence: f32,
     pub evidence_tier: u8,
 }
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum MemoryKind {
@@ -239,6 +267,7 @@ pub enum MemoryKind {
     RepoFact,
     UserPreference,
 }
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum MemoryStatus {
@@ -246,6 +275,7 @@ pub enum MemoryStatus {
     Approved,
     Retracted,
 }
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct MemoryRecord {
     pub memory_id: String,
@@ -267,6 +297,7 @@ pub struct MemoryRecord {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub status_reason: Option<String>,
 }
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct RepoProbe {
     pub repo_path: String,
@@ -285,6 +316,7 @@ pub struct RepoProbe {
     #[serde(default)]
     pub recent_commits: Vec<String>,
 }
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct AuditRecord {
     pub workspace_root: String,
@@ -305,6 +337,18 @@ pub struct AuditRecord {
     #[serde(default)]
     pub proposed_memories: Vec<MemoryRecord>,
 }
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct CorpusSearchHit {
+    pub workspace_root: String,
+    pub workspace_id: String,
+    pub file_path: String,
+    pub start_line: usize,
+    pub end_line: usize,
+    pub score: f32,
+    pub snippet: String,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct StoredAuditSummary {
     pub session_id: String,
