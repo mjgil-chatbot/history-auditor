@@ -19,3 +19,5 @@ mod util;
 mod test_support;
 #[cfg(test)]
 mod retrieval_tests;
+#[cfg(test)]
+mod extraction_tests;
