@@ -16,4 +16,6 @@ pub mod store;
 mod store_support;
 mod util;
 #[cfg(test)]
+mod test_support;
+#[cfg(test)]
 mod retrieval_tests;
