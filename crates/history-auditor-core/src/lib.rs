@@ -15,11 +15,18 @@ pub mod session_mcp;
 pub mod store;
 mod store_support;
 mod util;
+
 #[cfg(test)]
 mod test_support;
+
 #[cfg(test)]
 mod retrieval_tests;
+
 #[cfg(test)]
 mod memory_tests;
+
 #[cfg(test)]
 mod extraction_tests;
+
+#[cfg(test)]
+mod tests;
