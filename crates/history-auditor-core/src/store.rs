@@ -5,19 +5,19 @@ use serde_json::json;
 use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
+
 use super::incident::incident_pattern_label;
 use super::paths::{memory_corpus_path, WorkspaceAuditorPaths};
-use super::schema::AuditRecord;
-use super::schema::ErrorKind;
-use super::schema::MemoryRecord;
-use super::schema::MemoryStatus;
-use super::schema::StoredAuditSummary;
-use super::schema::TaskRun;
+use super::schema::{
+    AuditRecord, CorpusSearchHit, ErrorKind, MemoryRecord, MemoryStatus, StoredAuditSummary,
+    TaskRun,
+};
 use super::store_support::{
     error_kind_label, persist_action_tx, persist_claim_tx, persist_edges_tx, persist_error_tx,
     persist_intent_tx, persist_memory_tx, read_memories, row_to_memory, serde_label, task_type,
     write_memory_corpus,
 };
+
 pub fn ensure_store(paths: &WorkspaceAuditorPaths) -> Result<()> {
     let conn = Connection::open(&paths.db_path)
         .with_context(|| format!("failed to open {}", paths.db_path.display()))?;
@@ -185,6 +185,7 @@ pub fn ensure_store(paths: &WorkspaceAuditorPaths) -> Result<()> {
 
     Ok(())
 }
+
 pub fn persist_audit(paths: &WorkspaceAuditorPaths, audit: &AuditRecord) -> Result<()> {
     ensure_store(paths)?;
     let mut conn = Connection::open(&paths.db_path)
@@ -293,6 +294,7 @@ pub fn persist_audit(paths: &WorkspaceAuditorPaths, audit: &AuditRecord) -> Resu
     tx.commit()?;
     Ok(())
 }
+
 pub fn load_existing_memory_texts(paths: &WorkspaceAuditorPaths) -> Result<Vec<String>> {
     ensure_store(paths)?;
     let conn = Connection::open(&paths.db_path)?;
@@ -302,12 +304,34 @@ pub fn load_existing_memory_texts(paths: &WorkspaceAuditorPaths) -> Result<Vec<S
     let rows = stmt.query_map([], |row| row.get::<_, String>(0))?;
     Ok(rows.filter_map(Result::ok).collect())
 }
+
+pub fn list_session_memories(
+    paths: &WorkspaceAuditorPaths,
+    session_id: &str,
+) -> Result<Vec<MemoryRecord>> {
+    ensure_store(paths)?;
+    let conn = Connection::open(&paths.db_path)?;
+    let mut stmt = conn.prepare(
+        "SELECT memory_id, session_id, status, kind, confidence, text, repo_path, branch,
+                evidence_event_ids_json, supporting_task_ids_json, created_at, updated_at, status_reason
+         FROM memory_records
+         WHERE session_id = ?1
+         ORDER BY created_at",
+    )?;
+    let rows = stmt.query_map(params![session_id], row_to_memory)?;
+    let memories = read_memories(rows)?;
+    drop(stmt);
+    drop(conn);
+    Ok(memories)
+}
+
 pub fn approve_memory(
     all_workspace_paths: &[WorkspaceAuditorPaths],
     memory_id: &str,
 ) -> Result<MemoryRecord> {
     mutate_memory_status(all_workspace_paths, memory_id, MemoryStatus::Approved, None)
 }
+
 pub fn retract_memory(
     all_workspace_paths: &[WorkspaceAuditorPaths],
     memory_id: &str,
@@ -320,6 +344,7 @@ pub fn retract_memory(
         reason,
     )
 }
+
 pub fn explain_task(paths: &WorkspaceAuditorPaths, task_id: &str) -> Result<Option<TaskRun>> {
     ensure_store(paths)?;
     let conn = Connection::open(&paths.db_path)?;
@@ -331,6 +356,7 @@ pub fn explain_task(paths: &WorkspaceAuditorPaths, task_id: &str) -> Result<Opti
     let json = row.get::<_, String>(0)?;
     Ok(Some(serde_json::from_str(&json)?))
 }
+
 pub fn list_audit_summaries(paths: &WorkspaceAuditorPaths) -> Result<Vec<StoredAuditSummary>> {
     ensure_store(paths)?;
     let conn = Connection::open(&paths.db_path)?;
@@ -366,6 +392,7 @@ pub fn list_audit_summaries(paths: &WorkspaceAuditorPaths) -> Result<Vec<StoredA
     }
     Ok(summaries)
 }
+
 pub fn list_report_file_names(
     paths: &WorkspaceAuditorPaths,
     branch: Option<&str>,
@@ -412,6 +439,7 @@ pub fn list_report_file_names(
     }
     Ok(file_names)
 }
+
 pub fn list_memory_file_names(
     paths: &WorkspaceAuditorPaths,
     branch: Option<&str>,
@@ -430,12 +458,14 @@ pub fn list_memory_file_names(
     }
     Ok(file_names)
 }
+
 pub fn write_memory_corpus_file(
     paths: &WorkspaceAuditorPaths,
     memory: &MemoryRecord,
 ) -> Result<()> {
     write_memory_corpus(paths, memory)
 }
+
 pub fn remove_memory_corpus_file(paths: &WorkspaceAuditorPaths, memory_id: &str) -> Result<()> {
     let path = memory_corpus_path(paths, memory_id);
     match fs::remove_file(&path) {
@@ -444,6 +474,7 @@ pub fn remove_memory_corpus_file(paths: &WorkspaceAuditorPaths, memory_id: &str)
         Err(err) => Err(err).with_context(|| format!("failed to remove {}", path.display())),
     }
 }
+
 pub fn list_workspace_paths(root: &Path) -> Result<Vec<WorkspaceAuditorPaths>> {
     let entries = match fs::read_dir(root) {
         Ok(entries) => entries,
@@ -472,6 +503,19 @@ pub fn list_workspace_paths(root: &Path) -> Result<Vec<WorkspaceAuditorPaths>> {
     }
     Ok(workspaces)
 }
+
+pub fn corpus_hit_to_json(hit: &CorpusSearchHit) -> serde_json::Value {
+    json!({
+        "workspace_root": hit.workspace_root,
+        "workspace_id": hit.workspace_id,
+        "file_path": hit.file_path,
+        "start_line": hit.start_line,
+        "end_line": hit.end_line,
+        "score": hit.score,
+        "snippet": hit.snippet,
+    })
+}
+
 fn mutate_memory_status(
     all_workspace_paths: &[WorkspaceAuditorPaths],
     memory_id: &str,
@@ -521,6 +565,7 @@ fn mutate_memory_status(
     }
     anyhow::bail!("No stored history-auditor memory found for `{memory_id}`")
 }
+
 fn supersede_weaker_memories(
     tx: &rusqlite::Transaction<'_>,
     paths: &WorkspaceAuditorPaths,
@@ -586,6 +631,7 @@ fn supersede_weaker_memories(
 
     Ok(())
 }
+
 fn should_supersede_memory(approved_memory: &MemoryRecord, sibling: &MemoryRecord) -> bool {
     if approved_memory.kind != sibling.kind {
         return false;
@@ -602,6 +648,7 @@ fn should_supersede_memory(approved_memory: &MemoryRecord, sibling: &MemoryRecor
         && approved_text.contains(sibling_text)
         && (stronger_support || stronger_confidence)
 }
+
 fn ensure_column(conn: &Connection, table: &str, column: &str, declaration: &str) -> Result<()> {
     let mut stmt = conn.prepare(&format!("PRAGMA table_info({table})"))?;
     let rows = stmt.query_map([], |row| row.get::<_, String>(1))?;
@@ -620,6 +667,7 @@ fn ensure_column(conn: &Connection, table: &str, column: &str, declaration: &str
     }
     Ok(())
 }
+
 fn backfill_incident_patterns(conn: &Connection) -> Result<()> {
     let mut stmt = conn.prepare(
         "SELECT session_id, task_type, primary_error_kind
@@ -653,11 +701,13 @@ fn backfill_incident_patterns(conn: &Connection) -> Result<()> {
     }
     Ok(())
 }
+
 fn parse_time(value: String) -> DateTime<Utc> {
     DateTime::parse_from_rfc3339(&value)
         .map(|value| value.with_timezone(&Utc))
         .unwrap_or_else(|_| Utc::now())
 }
+
 fn parse_error_kind_label(value: &str) -> ErrorKind {
     match value {
         "non_fast_forward" => ErrorKind::NonFastForward,

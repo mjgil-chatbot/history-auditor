@@ -11,6 +11,7 @@ pub mod report;
 pub mod schema;
 pub mod service;
 pub mod session;
+pub mod session_mcp;
 pub mod store;
 mod store_support;
 mod util;
